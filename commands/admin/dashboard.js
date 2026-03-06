@@ -358,7 +358,9 @@ async function buildCodesListResponse(session, state) {
     embed.setDescription('No codes found for this filter.');
   } else {
     for (const row of data.rows) {
-      const status = row.is_active ? '✅' : '❌';
+      const isExpired = row.expires_at !== null && new Date(row.expires_at) <= new Date();
+      const isAtCapacity = row.max_uses !== null && row.uses >= row.max_uses;
+      const status = row.is_active && !isExpired && !isAtCapacity ? '✅' : '❌';
       const uses = `${row.uses}/${row.max_uses ?? '∞'}`;
       const expires = row.expires_at
         ? `<t:${Math.floor(new Date(row.expires_at).getTime() / 1000)}:R>`
@@ -483,12 +485,15 @@ async function buildCodeDetailResponse(session, state) {
     ? `<t:${Math.floor(new Date(record.expires_at).getTime() / 1000)}:R>`
     : 'Never';
 
+  const isExpired = record.expires_at !== null && new Date(record.expires_at) <= new Date();
+  const isAtCapacity = record.max_uses !== null && record.uses >= record.max_uses;
+
   const embed = new EmbedBuilder()
     .setColor(0x7c3aed)
     .setTitle(`🔍 Code: \`${record.code}\``)
     .addFields(
       { name: 'Label', value: record.label, inline: true },
-      { name: 'Status', value: record.is_active ? '✅ Active' : '❌ Inactive', inline: true },
+      { name: 'Status', value: record.is_active && !isExpired && !isAtCapacity ? '✅ Active' : '❌ Inactive', inline: true },
       { name: 'Uses', value: `${record.uses}/${record.max_uses ?? '∞'}`, inline: true },
       { name: 'Expires', value: expires, inline: true },
       { name: 'Created By', value: record.created_by || '—', inline: true },
